@@ -1,0 +1,2 @@
+bucket = "your-globally-unique-bucket-name"
+region = "us-west-2"
