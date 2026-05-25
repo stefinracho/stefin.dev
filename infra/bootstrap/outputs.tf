@@ -1,6 +1,11 @@
-output "github_actions_role_arn" {
-  value       = aws_iam_role.github_actions.arn
-  description = "ARN of the IAM role assumed by GitHub Actions via OIDC. Add this to GitHub Repository Secrets."
+output "github_actions_plan_role_arn" {
+  value       = aws_iam_role.github_actions_plan.arn
+  description = "ARN of the IAM role assumed by GitHub Actions for plan operations (PRs and pushes to main). Add this to GitHub Repository Variables as AWS_PLAN_ROLE_ARN."
+}
+
+output "github_actions_apply_role_arn" {
+  value       = aws_iam_role.github_actions_apply.arn
+  description = "ARN of the IAM role assumed by GitHub Actions for apply operations (push to main, gated by the production environment). Add this to GitHub Repository Variables as AWS_APPLY_ROLE_ARN."
 }
 
 output "oidc_provider_arn" {

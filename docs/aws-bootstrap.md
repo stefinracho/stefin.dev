@@ -140,18 +140,14 @@ To allow GitHub Actions to authenticate with AWS, it needs the ARN of the IAM ro
 4. **Configure Branch Protections:**
     1. Under **Deployment branches and tags**, select **Selected branches and tags**.
     2. Add a rule to only allow the `main` branch.
-5. **Add Environment Secret:**
-    1. Under **Environment secrets**, click **Add environment secret**.
-    2. Name the secret `AWS_ROLE_ARN`.
-    3. Paste the `github_actions_role_arn` value from your Terraform apply output.
-    4. Click **Add secret**.
-6. **Add Repository Variables:**
+5. **Add Repository Variables:**
     1. In the left sidebar of your repository settings, go to **Secrets and variables** > **Actions**.
     2. Click the **Variables** tab (next to the Secrets tab).
     3. Click **New repository variable**.
     4. Name: `AWS_REGION` | Value: (e.g., `us-west-2` or your chosen region).
-    5. Click **New repository variable** again.
-    6. Name: `STATE_BUCKET_NAME` | Value: (The name of the bucket you created in Step 5).
+    5. Repeat for `STATE_BUCKET_NAME` (the bucket created in Step 5).
+    6. Repeat for `AWS_PLAN_ROLE_ARN` (the `github_actions_plan_role_arn` output from Terraform).
+    7. Repeat for `AWS_APPLY_ROLE_ARN` (the `github_actions_apply_role_arn` output from Terraform).
 
 ## 9. Commit & Push
 
