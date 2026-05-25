@@ -1,4 +1,68 @@
-data "aws_iam_policy_document" "terraform_permissions" {
+# ==============================================================================
+# Shared State Access
+# ==============================================================================
+data "aws_iam_policy_document" "terraform_state_access" {
+  statement {
+    sid    = "AllowStateRead"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:ListBucket",
+      "s3:GetBucketVersioning",
+    ]
+    resources = [
+      aws_s3_bucket.terraform_state.arn,
+      "${aws_s3_bucket.terraform_state.arn}/*",
+    ]
+  }
+
+  statement {
+    sid    = "AllowStateLockOperations"
+    effect = "Allow"
+    actions = [
+      "s3:PutObject",
+      "s3:DeleteObject",
+    ]
+    resources = [
+      "${aws_s3_bucket.terraform_state.arn}/*.tflock",
+    ]
+  }
+}
+
+# ==============================================================================
+# State Write (apply only)
+# ==============================================================================
+data "aws_iam_policy_document" "terraform_state_write" {
+  statement {
+    sid    = "AllowStateWrite"
+    effect = "Allow"
+    actions = [
+      "s3:PutObject",
+    ]
+    resources = [
+      "${aws_s3_bucket.terraform_state.arn}/*.tfstate",
+    ]
+  }
+}
+
+# ==============================================================================
+# Plan Role Policies
+# ==============================================================================
+resource "aws_iam_role_policy_attachment" "plan_readonly" {
+  role       = aws_iam_role.github_actions_plan.name
+  policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+}
+resource "aws_iam_role_policy" "plan_state_access" {
+  name   = "terraform-state-access"
+  role   = aws_iam_role.github_actions_plan.id
+  policy = data.aws_iam_policy_document.terraform_state_access.json
+}
+
+# ==============================================================================
+# Apply Role Policies
+# ==============================================================================
+data "aws_iam_policy_document" "terraform_apply_permissions" {
   statement {
     sid    = "AllowInfrastructureProvisioning"
     effect = "Allow"
@@ -105,12 +169,11 @@ data "aws_iam_policy_document" "terraform_permissions" {
   }
 
   statement {
-    sid    = "DenyStateBucketModification"
+    sid    = "DenyStateBucketDestructiveActions"
     effect = "Deny"
     actions = [
       "s3:DeleteBucket",
       "s3:DeleteBucketPolicy",
-      "s3:DeleteObject",
       "s3:DeleteObjectVersion",
       "s3:PutBucketPolicy",
       "s3:PutBucketPublicAccessBlock",
@@ -126,8 +189,20 @@ data "aws_iam_policy_document" "terraform_permissions" {
   }
 }
 
-resource "aws_iam_role_policy" "terraform_policy" {
+resource "aws_iam_role_policy" "apply_infrastructure" {
   name   = "terraform-infrastructure-policy"
-  role   = aws_iam_role.github_actions.id
-  policy = data.aws_iam_policy_document.terraform_permissions.json
+  role   = aws_iam_role.github_actions_apply.id
+  policy = data.aws_iam_policy_document.terraform_apply_permissions.json
+}
+
+resource "aws_iam_role_policy" "apply_state_access" {
+  name   = "terraform-state-access"
+  role   = aws_iam_role.github_actions_apply.id
+  policy = data.aws_iam_policy_document.terraform_state_access.json
+}
+
+resource "aws_iam_role_policy" "apply_state_write" {
+  name   = "terraform-state-write"
+  role   = aws_iam_role.github_actions_apply.id
+  policy = data.aws_iam_policy_document.terraform_state_write.json
 }

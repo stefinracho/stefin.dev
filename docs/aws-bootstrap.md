@@ -65,8 +65,8 @@ The Terraform code to bootstrap the account already exists in the `infra/bootstr
 
 3. Open `terraform.tfvars` and update the values for your new environment. (Ensure you provide a valid email address for `budget_alert_email` to receive billing alerts).
 
-   > [!IMPORTANT] 
-   > The `github_environment` variable should match the environment created in Step 1.
+> [!IMPORTANT] 
+> The `github_environment` variable should match the environment created in Step 1.
 
 4. Copy the backend configuration template:
 
@@ -76,8 +76,8 @@ The Terraform code to bootstrap the account already exists in the `infra/bootstr
 
 5. Open `config.s3.tfbackend` and update the values.
 
-   > [!IMPORTANT]
-   > The `bucket` and `region` values here must exactly match the `state_bucket_name` and `aws_region` values you set in `terraform.tfvars`.
+> [!IMPORTANT]
+> The `bucket` and `region` values here must exactly match the `state_bucket_name` and `aws_region` values you set in `terraform.tfvars`.
 
 ## 5. The Local Apply
 
@@ -137,16 +137,23 @@ To allow GitHub Actions to authenticate with AWS, it needs the ARN of the IAM ro
     1. Check **Required reviewers** and add yourself (or your team). This ensures deployments pause for human approval.
     2. Uncheck **Allow administrators to bypass configured protection rules**.
     3. Click **Save protection rules**.
-4. Under **Deployment branches and tags**, select **Selected branches and tags**, then add a rule to only allow the `main` branch.
-4. Under **Environment secrets**, click **Add environment secret**.
-5. Name the secret `AWS_ROLE_ARN`.
-6. Paste the `github_actions_role_arn` value from your Terraform apply output.
-7. Click **Add secret**.
+4. **Configure Branch Protections:**
+    1. Under **Deployment branches and tags**, select **Selected branches and tags**.
+    2. Add a rule to only allow the `main` branch.
+5. **Add Repository Variables:**
+    1. In the left sidebar of your repository settings, go to **Secrets and variables** > **Actions**.
+    2. Click the **Variables** tab (next to the Secrets tab).
+    3. Click **New repository variable**.
+    4. Name: `AWS_REGION` | Value: (e.g., `us-west-2` or your chosen region).
+    5. Repeat for `STATE_BUCKET_NAME` (the bucket created in Step 5).
+    6. Repeat for `AWS_PLAN_ROLE_ARN` (the `github_actions_plan_role_arn` output from Terraform).
+    7. Repeat for `AWS_APPLY_ROLE_ARN` (the `github_actions_apply_role_arn` output from Terraform).
 
 ## 9. Commit & Push
 
 Now that the remote state is secure and GitHub has the necessary authentication secret, you can safely commit your code. 
 
-1. Commit your `.tf` files (with the backend block restored) and push them to your GitHub repository. (Be sure *not* to commit `terraform.tfvars` or `config.s3.tfbackend`).
+1. Ensure the `backend "s3"` block in your `main.tf` is uncommented.
+2. Commit your `.tf` files and the newly generated `.terraform.lock.hcl` file, then push them to your GitHub repository. (Be sure *not* to commit `terraform.tfvars` or `config.s3.tfbackend`).
 
 **Congratulations!** The local-to-remote bootstrap is complete. AWS is ready to securely receive infrastructure updates exclusively from GitHub Actions.

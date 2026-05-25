@@ -1,0 +1,113 @@
+name: "Terraform CI/CD"
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "infra/core/**"
+      - ".github/workflows/terraform.yml"
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "infra/core/**"
+      - ".github/workflows/terraform.yml"
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  TF_WORKING_DIR: "./infra/core"
+  TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+
+concurrency:
+  group: terraform-core-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ============================================================================
+  # PLAN - runs on PRs and on push to main.
+  # ============================================================================
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Terraform Format Check
+        uses: dflook/terraform-fmt-check@v2
+        with:
+          path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Validate
+        uses: dflook/terraform-validate@v2
+        with:
+          path: ${{ env.TF_WORKING_DIR }}
+          backend_config: |
+            bucket=${{ vars.STATE_BUCKET_NAME }}
+            region=${{ vars.AWS_REGION }}
+
+      - name: Terraform Plan
+        id: plan
+        uses: dflook/terraform-plan@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path: ${{ env.TF_WORKING_DIR }}
+          label: core
+          add_github_comment: changes-only
+          backend_config: |
+            bucket=${{ vars.STATE_BUCKET_NAME }}
+            region=${{ vars.AWS_REGION }}
+
+  # ============================================================================
+  # APPLY - only on push to main. Gated by the `production` environment.
+  # ============================================================================
+  apply:
+    name: Terraform Apply
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Terraform Apply
+        if: needs.plan.outputs.changes == 'true'
+        uses: dflook/terraform-apply@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path: ${{ env.TF_WORKING_DIR }}
+          label: core
+          backend_config: |
+            bucket=${{ vars.STATE_BUCKET_NAME }}
+            region=${{ vars.AWS_REGION }}
+
+      - name: No Changes
+        if: needs.plan.outputs.changes != 'true'
+        run: echo "Plan reported no changes; nothing to apply."
