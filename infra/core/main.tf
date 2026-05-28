@@ -85,6 +85,17 @@ module "security_group" {
   egress_rules = ["all-all"]
 }
 
+resource "aws_network_interface" "web" {
+  subnet_id          = module.vpc.public_subnets[0]
+  security_groups    = [module.security_group.security_group_id]
+  ipv6_address_count = 1
+
+  tags = {
+    Name        = "${var.project_prefix}-eni"
+    Environment = var.environment
+  }
+}
+
 module "ec2_instance" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "~> 6.4"
@@ -92,13 +103,16 @@ module "ec2_instance" {
 
   create_security_group = false
 
-  instance_type          = "t3.micro"
-  ami                    = data.aws_ami.ubuntu.id
-  subnet_id              = module.vpc.public_subnets[0]
-  vpc_security_group_ids = [module.security_group.security_group_id]
+  instance_type = "t3.micro"
+  ami           = data.aws_ami.ubuntu.id
 
-  ipv6_address_count          = 1
-  associate_public_ip_address = false
+  network_interface = {
+    primary = {
+      device_index          = 0
+      network_interface_id  = aws_network_interface.web.id
+      delete_on_termination = false
+    }
+  }
 
   create_iam_instance_profile = true
   iam_role_name               = "${var.project_prefix}-ec2-role"
