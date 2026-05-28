@@ -22,6 +22,7 @@ permissions:
 env:
   TF_WORKING_DIR: "./infra/core"
   TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+  TF_VAR_acme_email: ${{ vars.ACME_EMAIL }}
 
 concurrency:
   group: terraform-core-${{ github.ref }}

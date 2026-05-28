@@ -17,3 +17,8 @@ variable "environment" {
   type        = string
   default     = "production"
 }
+
+variable "acme_email" {
+  description = "The email address used for Let's Encrypt certificate registration."
+  type        = string
+}
