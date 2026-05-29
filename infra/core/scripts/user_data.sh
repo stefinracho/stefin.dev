@@ -64,7 +64,7 @@ chmod 600 acme.json
 cat <<EOF >docker-compose.yml
 services:
   traefik:
-    image: traefik:v3.3
+    image: traefik:v3.7
     container_name: traefik
     restart: unless-stopped
     security_opt:
