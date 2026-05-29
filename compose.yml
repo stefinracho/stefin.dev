@@ -10,6 +10,7 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
       - "traefik.http.routers.web.rule=Host(`stefin.dev`)"
       - "traefik.http.routers.web.entrypoints=https"
       - "traefik.http.routers.web.tls=true"

@@ -131,7 +131,7 @@ docker compose up -d
 mkdir -p /opt/app
 cd /opt/app
 
-# # Download the latest compose.yml
+# # Download latest compose.yml
 curl -fsSL \
   --retry 5 \
   --retry-all-errors \
