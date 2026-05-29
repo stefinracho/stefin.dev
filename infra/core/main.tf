@@ -43,14 +43,11 @@ module "vpc" {
   version = "~> 6.6"
 
   name = "${var.project_prefix}-vpc"
-  cidr = "10.0.0.0/16"
 
-  azs            = [data.aws_availability_zones.available.names[0]]
-  public_subnets = ["10.0.101.0/24"]
+  cidr           = "10.4.0.0/16"
+  public_subnets = ["10.4.101.0/24"]
 
-  enable_ipv6                                   = true
-  public_subnet_ipv6_prefixes                   = [0]
-  public_subnet_assign_ipv6_address_on_creation = true
+  azs = [data.aws_availability_zones.available.names[0]]
 
   tags = {
     Environment = var.environment
@@ -61,24 +58,24 @@ module "security_group" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~>5.3"
 
-  name        = "${var.project_prefix}-web-sg"
+  name        = "${var.project_prefix}-web-sg-v4"
   description = "Security group for web server allowing HTTP/HTTPS globally"
   vpc_id      = module.vpc.vpc_id
 
-  ingress_with_ipv6_cidr_blocks = [
+  ingress_with_cidr_blocks = [
     {
-      from_port        = 80
-      to_port          = 80
-      protocol         = "tcp"
-      description      = "HTTP globally (IPv6)"
-      ipv6_cidr_blocks = "::/0"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      description = "HTTP globally"
+      cidr_blocks = "0.0.0.0/0"
     },
     {
-      from_port        = 443
-      to_port          = 443
-      protocol         = "tcp"
-      description      = "HTTPS globally (IPv6)"
-      ipv6_cidr_blocks = "::/0"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      description = "HTTPS globally"
+      cidr_blocks = "0.0.0.0/0"
     },
   ]
 
@@ -92,13 +89,11 @@ module "ec2_instance" {
 
   create_security_group = false
 
-  instance_type          = "t3.micro"
-  ami                    = data.aws_ami.ubuntu.id
-  subnet_id              = module.vpc.public_subnets[0]
-  vpc_security_group_ids = [module.security_group.security_group_id]
-
-  ipv6_address_count          = 1
-  associate_public_ip_address = false
+  instance_type               = "t3.micro"
+  ami                         = data.aws_ami.ubuntu.id
+  subnet_id                   = module.vpc.public_subnets[0]
+  vpc_security_group_ids      = [module.security_group.security_group_id]
+  associate_public_ip_address = true
 
   create_iam_instance_profile = true
   iam_role_name               = "${var.project_prefix}-ec2-role"
@@ -113,6 +108,16 @@ module "ec2_instance" {
   user_data_replace_on_change = true
 
   tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_eip" "web" {
+  instance = module.ec2_instance.id
+  domain   = "vpc"
+
+  tags = {
+    Name        = "${var.project_prefix}-eip"
     Environment = var.environment
   }
 }
