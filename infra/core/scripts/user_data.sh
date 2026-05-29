@@ -124,3 +124,27 @@ docker network create proxy || true
 
 # Start Traefik
 docker compose up -d
+
+################################################################################
+# Setup Web Application & Watchtower (Automated Bootstrap)
+################################################################################
+mkdir -p /opt/app
+cd /opt/app
+
+# Get compose.yml
+curl -fsSL \
+  --retry 5 \
+  --retry-all-errors \
+  --retry-delay 5 \
+  -o compose.yml \
+  https://raw.githubusercontent.com/stefinracho/stefin.dev/main/compose.yml
+
+for attempt in $(seq 1 30); do
+  if docker compose pull && docker compose up -d; then
+    exit 0
+  fi
+  sleep 30
+done
+
+echo "Failed to start application after retries"
+exit 1
