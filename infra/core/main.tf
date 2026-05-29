@@ -89,6 +89,8 @@ module "ec2_instance" {
 
   create_security_group = false
 
+  depends_on = [module.security_group]
+
   instance_type               = "t3.micro"
   ami                         = data.aws_ami.ubuntu.id
   subnet_id                   = module.vpc.public_subnets[0]
