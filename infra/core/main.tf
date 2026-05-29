@@ -43,10 +43,11 @@ module "vpc" {
   version = "~> 6.6"
 
   name = "${var.project_prefix}-vpc"
-  cidr = "10.0.0.0/16"
 
-  azs            = [data.aws_availability_zones.available.names[0]]
-  public_subnets = ["10.0.101.0/24"]
+  cidr           = "10.1.0.0/16"
+  public_subnets = ["10.1.101.0/24"]
+
+  azs = [data.aws_availability_zones.available.names[0]]
 
   tags = {
     Environment = var.environment
