@@ -60,7 +60,8 @@ module "security_group" {
 
   name        = "${var.project_prefix}-web-sg"
   description = "Security group for web server allowing HTTP/HTTPS globally"
-  vpc_id      = module.vpc.vpc_id
+
+  vpc_id = module.vpc.vpc_id
 
   ingress_with_cidr_blocks = [
     {
